@@ -18,12 +18,13 @@ class Image:
             - channel info
             - etc."""
 
-    def __init__(self, file_path):
+    def __init__(self, file_path, channel_name:list):
         # or __post_init__
         # definiáljuk a self.image_path paramétert!
         # self.channel_number
         # self.nucleus_channel 
         self.image_path = Path(file_path)
+        self.channel_name = channel_name
 
         # self.ext = self.image_path.suffix
         # if self.ext not in ['.tif', '.czi']:
@@ -33,8 +34,11 @@ class Image:
     def load_image(self):
         """loads the image data and stores it in self.image"""
         """loads the image data and stores it in self.image"""
-
-        pass
+        if 'tif' in self.image_path[0]:
+            self.image = io.imread(*self.image_path)
+        elif 'czi' in self.image_path[0]:
+            self.image = AICSImage(*self.image_path).get_image_data()
+    
     
     def display_image(self): 
         channels = self.image.shape[2]
@@ -42,6 +46,7 @@ class Image:
         for channel in range(channels):
             plt.subplot(1,3, channel + 1)
             plt.imshow(self.image[:,:,channel], cmap='gray')
+            plt.text(0, 0, self.channel_name)
             plt.xticks([])
             plt.yticks([])
         plt.show()
