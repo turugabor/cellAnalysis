@@ -54,31 +54,37 @@ class Image:
 
 class ZeissCziImage(Image):
     
-    def __init__(self, path):
-        super().__init__(path)
-        
+    def __init__(self, folder, name):
+        self.image_name = Path(name)
+        if self.image_name.suffix == "":
+            self.image_name = self.image_name.with_suffix('.czi')
+        elif self.image_name.suffix != ".czi":
+            raise ValueError("Only supports images with .czi extension")
+            
+        super().__init__(folder)
 
+    
     def load_image(self):
-        aics_image = AICSImage(self.image_path)
+        img = self.image_path / self.image_name
+        aics_image = AICSImage(img)
         self.image = aics_image.get_image_data('YXZ')
 
 class ImageXpressImage(Image):
     
-    def __init__(self, folder, well, pos):
-        self.well = well
-        self.pos = pos
+    def __init__(self, folder, name):
+        self.image_name = name
         super().__init__(folder)
         
         
 
     def load_image(self):
         imgs = listdir(self.image_path)
-        imgs = [im for im in imgs if f"_{self.well}_" in im] # list comprehension
-        imgs = [im for im in imgs if f"_{self.pos}" in im]
-        imgs = [im for im in imgs if f"_thumb" not in im]
+        imgs = [im for im in imgs if self.image_name in im & "_thumb" not in im]
+        
         imgs = [io.imread(f"{self.image_path}/{im}") for im in imgs]
         imgs = [im.reshape(im.shape[0], im.shape[1], 1) for im in imgs]
         self.image = np.concatenate(imgs, axis=2)
+
 
 # -
 

@@ -33,10 +33,16 @@ import importlib
 importlib.reload(ca)
 
 # %%
-imgZ = ca.ZeissCziImage("data/ZeissConfocalSamples/3_20x.czi")
+imgZ = ca.ZeissCziImage("data/ZeissConfocalSamples", "3_20x.czi")
 
 # %%
-imgX = ca.ImageXpressImage("data/imageXpressSamples", "A01", "s10")
+imgZ.load_image()
+
+# %%
+imgZ.display_image()
+
+# %%
+imgX = ca.ImageXpressImage("data/imageXpressSamples", "A01_s10")
 
 # %%
 imgX.load_image()
