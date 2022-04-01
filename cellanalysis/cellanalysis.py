@@ -18,14 +18,16 @@ class Image:
             - channel info
             - etc."""
 
-    def __init__(self, file_path):
+    def __init__(self, file_path, channel_names=None):
         # or __post_init__
         # definiáljuk a self.image_path paramétert!
         # self.channel_number
         # self.nucleus_channel 
         self.image_path = Path(file_path)
+        self.channel_names = channel_names
 
-        # self.ext = self.image_path.suffix
+
+            # self.ext = self.image_path.suffix
         # if self.ext not in ['.tif', '.czi']:
         #     raise ValueError(f"Extention '{self.ext}' is not supported!")
 
@@ -44,6 +46,8 @@ class Image:
             plt.imshow(self.image[:,:,channel], cmap='gray')
             plt.xticks([])
             plt.yticks([])
+            if self.channel_names is not None:
+                plt.title(self.channel_names[channel])
         plt.show()
 
     def subtract_background(self):
@@ -54,8 +58,8 @@ class Image:
 
 class ZeissCziImage(Image):
     
-    def __init__(self, path):
-        super().__init__(path)
+    def __init__(self, path, channel_names=None):
+        super().__init__(path, channel_names)
         
 
     def load_image(self):
@@ -64,10 +68,10 @@ class ZeissCziImage(Image):
 
 class ImageXpressImage(Image):
     
-    def __init__(self, folder, well, pos):
+    def __init__(self, folder, well, pos, channel_names=None):
         self.well = well
         self.pos = pos
-        super().__init__(folder)
+        super().__init__(folder, channel_names)
         
         
 
