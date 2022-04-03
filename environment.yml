@@ -13,3 +13,4 @@ dependencies:
     - jupytext
     - aicsimageio
     - aicspylibczi
+    - opencv-python
