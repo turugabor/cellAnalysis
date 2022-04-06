@@ -54,7 +54,10 @@ class Image:
 
 class ZeissCziImage(Image):
     
-    def __init__(self, path):
+    def __init__(self, folder, filename):
+        
+        path = Path(folder) / filename
+        
         super().__init__(path)
         
 
@@ -64,19 +67,24 @@ class ZeissCziImage(Image):
 
 class ImageXpressImage(Image):
     
-    def __init__(self, folder, well, pos):
-        self.well = well
-        self.pos = pos
-        super().__init__(folder)
+    def __init__(self, folder, filename):
+        splitname = filename.split('_')
+        self.well = splitname[1]
+        self.pos = splitname[2]
+        path = Path(folder) / filename
+        
+        self.folder = folder
+        
+        super().__init__(path)
         
         
 
     def load_image(self):
-        imgs = listdir(self.image_path)
+        imgs = listdir(self.folder)
         imgs = [im for im in imgs if f"_{self.well}_" in im] # list comprehension
         imgs = [im for im in imgs if f"_{self.pos}" in im]
         imgs = [im for im in imgs if f"_thumb" not in im]
-        imgs = [io.imread(f"{self.image_path}/{im}") for im in imgs]
+        imgs = [io.imread(f"{self.folder}/{im}") for im in imgs]
         imgs = [im.reshape(im.shape[0], im.shape[1], 1) for im in imgs]
         self.image = np.concatenate(imgs, axis=2)
 
