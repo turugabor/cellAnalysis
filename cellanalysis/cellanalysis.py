@@ -10,7 +10,7 @@ import pandas as pd
 from skimage.filters import threshold_otsu, threshold_local
 from skimage.morphology import binary_closing
 from skimage import measure
-
+import pandas as pd
 
 class Image:
     """basic image class which stores the image metadata:

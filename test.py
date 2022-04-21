@@ -51,16 +51,22 @@ imgX = ca.ImageXpressImage(folder = "data/imageXpressSamples", name = "A01_s10",
 imgX.load_image()
 
 # %%
+imgX.image.shape
+
+# %%
 imgX.display_image()
 
 # %%
 imgX.subtract_background()
 
 # %%
+<<<<<<< HEAD
 nuclei = detector.predict_nuclei(imgX.image)
 plt.imshow(nuclei)
 
 # %%
+=======
+>>>>>>> c927c50bfad8d4d2270e77dc3e9d69b1c8fccb85
 detector = ca.CellDetector()
 
 # %%
@@ -99,7 +105,7 @@ plt.imshow(nuclei == 3)
 (nuclei == 3).sum()
 
 # %%
-idx | nucleus_size | nucleus_fluoreescence
+# idx | nucleus_size | nucleus_fluoreescence
 
 # %%
 nuclei.reshape(-1,1) 
@@ -120,6 +126,10 @@ data = pd.DataFrame(joint, columns=['cell_idx', 'fluorescence'])
 data = data[data.cell_idx > 0]
 
 # %%
-data.groupby('cell_idx').mean()
+analizer = ca.Analyzer()
 
 # %%
+analized = analizer.analyze(imgX.image,nuclei)
+
+# %%
+analized
