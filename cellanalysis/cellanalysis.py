@@ -6,6 +6,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from os import listdir
 import numpy as np
+import pandas as pd
 from skimage.filters import threshold_otsu, threshold_local
 from skimage.morphology import binary_closing
 from skimage import measure
@@ -18,17 +19,21 @@ class Image:
             - channel info
             - etc."""
 
-    def __init__(self, file_path):
-        # or __post_init__
-        # definiáljuk a self.image_path paramétert!
-        # self.channel_number
-        # self.nucleus_channel 
-        self.image_path = Path(file_path)
+    def __init__(self, folder, name, channel_names = {1:'1', 2:'2', 3:'3'}):
+        """
+        Description of __init__
 
-        # self.ext = self.image_path.suffix
-        # if self.ext not in ['.tif', '.czi']:
-        #     raise ValueError(f"Extention '{self.ext}' is not supported!")
+        Args:
+            folder (str): folder location of the image
+            name (str): name of the image
+            channel_names (dict): names of the channels, defaults to {1:'1',2:'2',3:'3'}
 
+        """
+        
+        self.folder = folder
+        self.name = name
+        self.channel_names = channel_names
+        
 
     def load_image(self):
         """loads the image data and stores it in self.image"""
@@ -42,6 +47,7 @@ class Image:
         for channel in range(channels):
             plt.subplot(1,3, channel + 1)
             plt.imshow(self.image[:,:,channel], cmap='gray')
+            plt.title(f"channel {channel + 1}: {self.channel_names[channel + 1]}")
             plt.xticks([])
             plt.yticks([])
         plt.show()
@@ -54,29 +60,27 @@ class Image:
 
 class ZeissCziImage(Image):
     
-    def __init__(self, path):
-        super().__init__(path)
+    def __init__(self, folder, name, channel_names = {1:'1', 2:'2', 3:'3'}):
+        super().__init__(folder, name, channel_names)
         
 
     def load_image(self):
-        aics_image = AICSImage(self.image_path)
+        path = f"{self.folder}/{self.name}"
+        aics_image = AICSImage(path)
         self.image = aics_image.get_image_data('YXZ')
 
 class ImageXpressImage(Image):
     
-    def __init__(self, folder, well, pos):
-        self.well = well
-        self.pos = pos
-        super().__init__(folder)
-        
-        
+    def __init__(self, folder, name, channel_names = {1:'1', 2:'2', 3:'3'}):
+        super().__init__(folder, name, channel_names)
 
     def load_image(self):
-        imgs = listdir(self.image_path)
-        imgs = [im for im in imgs if f"_{self.well}_" in im] # list comprehension
-        imgs = [im for im in imgs if f"_{self.pos}" in im]
+        imgs = listdir(self.folder)
+        imgs = [im for im in imgs if f"_{self.name}_" in im] # list comprehension
         imgs = [im for im in imgs if f"_thumb" not in im]
-        imgs = [io.imread(f"{self.image_path}/{im}") for im in imgs]
+        imgs.sort()
+        imgs = [io.imread(f"{self.folder}/{im}") for im in imgs]
+        
         imgs = [im.reshape(im.shape[0], im.shape[1], 1) for im in imgs]
         self.image = np.concatenate(imgs, axis=2)
 
@@ -88,12 +92,18 @@ class CellDetector:
     def __init__(self):
         pass
 
-    def predict_cells(self):
-        pass
+    def predict_cells(self, img, cell_channel=2):
+        cell_channel -= 1
+        global_thresh = threshold_otsu(img[:,:,cell_channel])
+        binary_global = img[:,:,cell_channel] > global_thresh
+        binary_closed = binary_closing(binary_global, np.ones(shape=(10,10)))
+        blobs_labels = measure.label(binary_closed, background=0)
+        return blobs_labels
 
-    def predict_nuclei(self, img):
-        global_thresh = threshold_otsu(img[:,:,0])
-        binary_global = img[:,:,0] > global_thresh
+    def predict_nuclei(self, img, nucleus_channel=1):
+        nucleus_channel -=1 
+        global_thresh = threshold_otsu(img[:,:,nucleus_channel])
+        binary_global = img[:,:,nucleus_channel] > global_thresh
         binary_closed = binary_closing(binary_global, np.ones(shape=(10,10)))
         blobs_labels = measure.label(binary_closed, background=0)
         return blobs_labels
@@ -123,8 +133,16 @@ class Experiment:
 
 class Analyzer:
     
-    def __init__(self):
-        pass
+    def __init__(self, detector):
+        
+        self.detector = detector
     
-    def analyze(self, img, nuclear_mask = None, cell_mask = None):
-        return data # df
+    def analyze(self, img, nucleus_channel):
+        nuclei = self.detector.predict_nuclei(img, nucleus_channel)
+        img = img[:,:,nucleus_channel].reshape(-1,1)
+        nuclei = nuclei.reshape(-1,1)
+
+        data = np.concatenate((nuclei, img), axis = 1)
+        data = pd.DataFrame(data, columns = ['cell_id', 'fluorescence'])
+        data = data.groupby('cell_id').mean()
+        return data

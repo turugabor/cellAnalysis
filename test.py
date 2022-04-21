@@ -8,7 +8,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.7
+#       jupytext_version: 1.13.8
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -33,10 +33,19 @@ import importlib
 importlib.reload(ca)
 
 # %%
-imgZ = ca.ZeissCziImage("data/ZeissConfocalSamples/3_20x.czi")
+imgZ = ca.ZeissCziImage(folder = "data/ZeissConfocalSamples", name = "3_20x.czi", channel_names={1:"cells"})
 
 # %%
-imgX = ca.ImageXpressImage("data/imageXpressSamples", "A01", "s10")
+imgZ.load_image()
+
+# %%
+imgZ.image.shape
+
+# %%
+imgZ.display_image()
+
+# %%
+imgX = ca.ImageXpressImage(folder = "data/imageXpressSamples", name = "A01_s10", channel_names={1:"DAPI", 2:'egyik', 3:'masik'})
 
 # %%
 imgX.load_image()
@@ -48,15 +57,24 @@ imgX.display_image()
 imgX.subtract_background()
 
 # %%
+nuclei = detector.predict_nuclei(imgX.image)
+plt.imshow(nuclei)
 
 # %%
 detector = ca.CellDetector()
 
 # %%
-nuclei = detector.predict_nuclei(imgX.image)
+analyzer = ca.Analyzer(detector)
 
 # %%
-plt.imshow(nuclei)
+data = analyzer.analyze(imgX.image, 1)
+
+# %%
+data
+
+# %%
+cells = detector.predict_cells(imgX.image, cell_channel=3)
+plt.imshow(cells)
 
 # %%
 nucleus_img = imgX.image[:, :, 2]
