@@ -11,6 +11,7 @@ from skimage.filters import threshold_otsu, threshold_local
 from skimage.morphology import binary_closing
 from skimage import measure
 import pandas as pd
+from cellpose import models
 
 class Image:
     """basic image class which stores the image metadata:
@@ -84,8 +85,8 @@ class ImageXpressImage(Image):
         imgs = [im.reshape(im.shape[0], im.shape[1], 1) for im in imgs]
         self.image = np.concatenate(imgs, axis=2)
 
-# -
 
+# +
 class CellDetector:
     """class with cell and nucleus detecting methods and detector specific attributes"""
     
@@ -107,6 +108,24 @@ class CellDetector:
         binary_closed = binary_closing(binary_global, np.ones(shape=(10,10)))
         blobs_labels = measure.label(binary_closed, background=0)
         return blobs_labels
+    
+class CellPoseDetector:
+    """class with cell and nucleus detecting methods and detector specific attributes"""
+    
+    def __init__(self):
+        self.cell_model = models.Cellpose(gpu=False, model_type='cyto')
+        #self.nucleus_model = 
+
+    def predict_cells(self, img, channels=[3,1], diameter=300, **kwargs):
+        """...."""
+        masks, flows, styles, diams = self.cell_model.eval(img, channels=channels, diameter=diameter, **kwargs)
+        return masks
+
+    def predict_nuclei(self, img, nucleus_channel=1):
+        pass
+
+
+# -
 
 class Experiment:
     """top class of the package"""
@@ -144,5 +163,9 @@ class Analyzer:
 
         data = np.concatenate((nuclei, img), axis = 1)
         data = pd.DataFrame(data, columns = ['cell_id', 'fluorescence'])
-        data = data.groupby('cell_id').mean()
+        data['size'] = 1
+        
+        data = data.groupby('cell_id').sum()
+        data['mean_fluorescence'] = data.fluorescence / data["size"]
+
         return data

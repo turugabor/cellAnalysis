@@ -14,3 +14,4 @@ dependencies:
     - aicsimageio
     - aicspylibczi
     - opencv-python
+    - cellpose

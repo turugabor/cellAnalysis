@@ -17,6 +17,7 @@
 
 # %%
 from cellanalysis import cellanalysis as ca
+from cellpose import models
 
 # %%
 import matplotlib.pyplot as plt
@@ -33,41 +34,27 @@ import importlib
 importlib.reload(ca)
 
 # %%
-imgZ = ca.ZeissCziImage(folder = "data/ZeissConfocalSamples", name = "3_20x.czi", channel_names={1:"cells"})
-
-# %%
-imgZ.load_image()
-
-# %%
-imgZ.image.shape
-
-# %%
-imgZ.display_image()
-
-# %%
 imgX = ca.ImageXpressImage(folder = "data/imageXpressSamples", name = "A01_s10", channel_names={1:"DAPI", 2:'egyik', 3:'masik'})
 
 # %%
 imgX.load_image()
 
 # %%
-imgX.image.shape
+imgX.subtract_background()
 
 # %%
 imgX.display_image()
 
 # %%
-imgX.subtract_background()
+detector = ca.CellPoseDetector()
 
 # %%
-<<<<<<< HEAD
 nuclei = detector.predict_nuclei(imgX.image)
 plt.imshow(nuclei)
 
 # %%
-=======
->>>>>>> c927c50bfad8d4d2270e77dc3e9d69b1c8fccb85
-detector = ca.CellDetector()
+cells = detector.predict_cells(imgX.image[:512,:512], channels=[3,1], do_3D=False)
+plt.imshow(cells)
 
 # %%
 analyzer = ca.Analyzer(detector)
@@ -79,57 +66,29 @@ data = analyzer.analyze(imgX.image, 1)
 data
 
 # %%
-cells = detector.predict_cells(imgX.image, cell_channel=3)
+imgX.image.shape
+
+# %%
+cell_model = models.Cellpose(gpu=False, model_type='cyto')
+
+# %%
+channels = [3,1]
+masks, flows, styles, diams = cell_model.eval(imgX.image, channels=channels, diameter=300)
+
+# %%
+masks, flows, styles, diams = cell_model.eval(imgX.image, channels=channels, diameter=300, )
+
+# %%
+masks.shape
+
+# %%
+plt.imshow(masks)
+plt.show()
+
+# %%
 plt.imshow(cells)
 
 # %%
-nucleus_img = imgX.image[:, :, 2]
-
-
-# %%
-plt.imshow(nucleus_img)
+imgX.display_image()
 
 # %%
-filtered = (nuclei > 0) * nucleus_img
-
-# %%
-plt.imshow(filtered)
-
-# %%
-filtered.sum() / (nuclei > 0).sum()
-
-# %%
-plt.imshow(nuclei == 3)
-
-# %%
-(nuclei == 3).sum()
-
-# %%
-# idx | nucleus_size | nucleus_fluoreescence
-
-# %%
-nuclei.reshape(-1,1) 
-
-# %%
-nucleus_img.reshape(-1,1)
-
-# %%
-joint = np.concatenate([nuclei.reshape(-1,1) , nucleus_img.reshape(-1,1)], axis=1)
-
-# %%
-joint.shape
-
-# %%
-data = pd.DataFrame(joint, columns=['cell_idx', 'fluorescence'])
-
-# %%
-data = data[data.cell_idx > 0]
-
-# %%
-analizer = ca.Analyzer()
-
-# %%
-analized = analizer.analyze(imgX.image,nuclei)
-
-# %%
-analized
