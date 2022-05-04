@@ -114,15 +114,17 @@ class CellPoseDetector:
     
     def __init__(self):
         self.cell_model = models.Cellpose(gpu=False, model_type='cyto')
-        #self.nucleus_model = 
-
-    def predict_cells(self, img, channels=[3,1], diameter=300, **kwargs):
+        self.nucleus_model = models.Cellpose(gpu=False, model_type='nuclei')
+        
+    def predict_cells(self, img, channels=[[3,1], [0,0]], diameter=300, **kwargs):
         """...."""
         masks, flows, styles, diams = self.cell_model.eval(img, channels=channels, diameter=diameter, **kwargs)
         return masks
 
-    def predict_nuclei(self, img, nucleus_channel=1):
-        pass
+    def predict_nuclei(self, img, nucleus_channel=1, diameter=80, **kwargs):
+        nucleus_channel=[nucleus_channel, 0]
+        masks, flows, styles, diams = self.cell_model.eval(img, channels=nucleus_channel, diameter=diameter, **kwargs)
+        return masks
 
 
 # -
