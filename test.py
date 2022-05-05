@@ -26,6 +26,7 @@ from skimage.filters import threshold_otsu, threshold_local
 from skimage.morphology import binary_closing
 from skimage import measure
 import pandas as pd
+import re
 
 # %%
 import importlib
@@ -34,13 +35,53 @@ import importlib
 importlib.reload(ca)
 
 # %%
-imgX = ca.ImageXpressImage(folder = "data/imageXpressSamples", name = "A01_s10", channel_names={1:"DAPI", 2:'egyik', 3:'masik'})
+exp = ca.ImageXpressExperiment(folder = "data/imageXpressSamples/")
+
+# %%
+exp.get_images()
+
+# %%
+exp.images
+
+# %%
+exp.images['B01_s13'].load_image()
+
+# %%
+exp.images['B01_s13'].display_image()
+
+# %%
+detector = ca.CellPoseDetector()
+
+# %%
+masks = detector.predict_nuclei(exp.images['B01_s13'].image, nucleus_channel=1, diameter=100)
+
+# %%
+plt.imshow(masks)
+
+# %%
+
+# %%
+
+# %%
+
+# %%
+exp.analyse_experiment()
+
+# %%
+
+# %%
+
+# %%
+imgX = ca.ImageXpressImage(folder = "data/20220504", name = "A01_s1", channel_names={1:"DAPI", 2:'egyik', 3:'masik'})
 
 # %%
 imgX.load_image()
 
 # %%
 imgX.subtract_background()
+
+# %%
+imgX.image.shape
 
 # %%
 imgX.display_image()

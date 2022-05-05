@@ -12,6 +12,8 @@ from skimage.morphology import binary_closing
 from skimage import measure
 import pandas as pd
 from cellpose import models
+import os
+import re
 
 class Image:
     """basic image class which stores the image metadata:
@@ -114,15 +116,17 @@ class CellPoseDetector:
     
     def __init__(self):
         self.cell_model = models.Cellpose(gpu=False, model_type='cyto')
-        #self.nucleus_model = 
+        self.nucleus_model = models.Cellpose(gpu=False, model_type='nuclei')
 
     def predict_cells(self, img, channels=[3,1], diameter=300, **kwargs):
         """...."""
-        masks, flows, styles, diams = self.cell_model.eval(img, channels=channels, diameter=diameter, **kwargs)
+        masks, __, __, __ = self.cell_model.eval(img, channels=channels, diameter=diameter, **kwargs)
         return masks
 
-    def predict_nuclei(self, img, nucleus_channel=1):
-        pass
+    def predict_nuclei(self, img, nucleus_channel=1, diameter=300, **kwargs):
+        """...."""
+        masks, __, __, __ = self.nucleus_model.eval(img, channels=[nucleus_channel, 0], diameter=diameter, **kwargs)
+        return masks
 
 
 # -
@@ -130,13 +134,12 @@ class CellPoseDetector:
 class Experiment:
     """top class of the package"""
 
-    def __init__(self, folder):
-        pass
+    def __init__(self, folder, channel_names = {1:'1', 2:'2', 3:'3'}):
+        self.folder = folder
+        self.channel_names = channel_names
 
     def get_images(self):
         """collects all the images belonging to the experiment (Image classes)"""
-        ## should create a list/dictionary/tuple of images
-        # img.load_image()
         pass
 
     def analyse_experiment(self):
@@ -148,6 +151,24 @@ class Experiment:
             
             Useful for checking a collection a cells with same properties (e.g. size, fluorescence, etc.)"""
         pass
+
+
+class ImageXpressExperiment(Experiment):
+
+    def __init__(self, folder, channel_names = {1:'1', 2:'2', 3:'3'}):
+        super().__init__(folder, channel_names)
+        self.images = {}        
+
+
+    def get_images(self):
+        names = os.listdir(self.folder)
+        names = [name for name in names if 'thumb' not in name]
+        names = [re.findall('[A-Z][0-9][0-9]_s[0-9]*', name)[0] for name in names]
+        names = list(set(names))
+        for name in names:
+            self.images[name] = ImageXpressImage(self.folder, name, channel_names=self.channel_names)
+        
+
 
 
 class Analyzer:
