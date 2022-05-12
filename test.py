@@ -53,7 +53,17 @@ exp.images['B01_s13'].display_image()
 detector = ca.CellPoseDetector()
 
 # %%
-masks = detector.predict_nuclei(exp.images['B01_s13'].image, nucleus_channel=1, diameter=100)
+detector = ca.CellDetector()
+
+# %%
+img = ca.ImageXpressImage('data/imageXpressSamples/', 'A01_s15' )
+
+img.load_image()
+
+masks = detector.predict_nuclei(img.image[:,:,0].reshape(img.image.shape[0], img.image.shape[1], 1), nucleus_channel=1)
+
+# %%
+img.image.shape
 
 # %%
 plt.imshow(masks)

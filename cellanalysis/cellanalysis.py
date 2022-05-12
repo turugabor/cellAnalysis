@@ -14,6 +14,8 @@ import pandas as pd
 from cellpose import models
 import os
 import re
+from tqdm.notebook import tqdm
+from skimage import filters
 
 class Image:
     """basic image class which stores the image metadata:
@@ -134,17 +136,31 @@ class CellPoseDetector:
 class Experiment:
     """top class of the package"""
 
-    def __init__(self, folder, channel_names = {1:'1', 2:'2', 3:'3'}):
+    
+    def __init__(self, detector, folder, channel_names = {1:'1', 2:'2', 3:'3'}, channel_to_analyse = 2):
         self.folder = folder
+        self.detector = detector
         self.channel_names = channel_names
+        self.channel_to_analyse = channel_to_analyse
+        self.analyzer = Analyzer(self.detector, self.channel_to_analyse)
+        self.background = 0
 
     def get_images(self):
         """collects all the images belonging to the experiment (Image classes)"""
+        ## should create a list/dictionary/tuple of images
+        # img.load_image()
+        # should be defined for the individual experiment
         pass
 
     def analyse_experiment(self):
-
-        pass
+        results = []
+        for img in tqdm(self.images):
+            self.images[img].load_image()
+            df = self.analyzer.analyze(self.images[img].image, self.background, self.channel_to_analyse)
+            df["name"] = img
+            results.append(df)
+            del self.images[img].image
+        return pd.concat(results)
 
     def display_cells(self, cellIds):
         """displays a collection of cells by IDs in a single plot
@@ -152,41 +168,69 @@ class Experiment:
             Useful for checking a collection a cells with same properties (e.g. size, fluorescence, etc.)"""
         pass
 
-
 class ImageXpressExperiment(Experiment):
-
-    def __init__(self, folder, channel_names = {1:'1', 2:'2', 3:'3'}):
-        super().__init__(folder, channel_names)
-        self.images = {}        
-
+    
+    def __init__(self, detector, folder, channel_names = {1:'1', 2:'2', 3:'3'}, channel_to_analyse = 2, no_bckgrd_imgs = 100):
+        super().__init__(detector, folder, channel_names, channel_to_analyse)
+        self.no_bckgrd_imgs = no_bckgrd_imgs
+        self.get_images()
+        self.get_background()
+        
 
     def get_images(self):
-        names = os.listdir(self.folder)
-        names = [name for name in names if 'thumb' not in name]
-        names = [re.findall('[A-Z][0-9][0-9]_s[0-9]*', name)[0] for name in names]
+        files = os.listdir(self.folder)
+        files = [f for f in files if 'thumb' not in f]
+        names = [re.findall('_[A-Z][0-9][0-9]_[a-z][0-9]*_',f)[0][1:-1] for f in files]
         names = list(set(names))
+        self.images = {}
         for name in names:
-            self.images[name] = ImageXpressImage(self.folder, name, channel_names=self.channel_names)
-        
+            self.images[name] = ImageXpressImage(self.folder, name, self.channel_names)
+
+    def get_background(self):
+        stack = []
+        imgs = np.random.choice(list(self.images.keys()), self.no_bckgrd_imgs)
+        print("calculating background....")
+        for name in tqdm(imgs):
+            self.images[name].load_image()
+            img = self.images[name].image
+            img = np.expand_dims(img, 3).copy()
+            del self.images[name].image
+            stack.append(img)
+        stack = np.concatenate(stack, axis =3)
+        self.background  = np.median(stack, axis=3).astype(np.uint16)
+        # blur the image to further remove noise
+        self.background = filters.gaussian(self.background,
+                                   sigma=(100, 100),
+                                   truncate=10,
+                                   multichannel=True, preserve_range=True)        
 
 
 
 class Analyzer:
     
-    def __init__(self, detector):
+    def __init__(self, detector, channel_to_analyse):
         
         self.detector = detector
     
-    def analyze(self, img, nucleus_channel):
-        nuclei = self.detector.predict_nuclei(img, nucleus_channel)
-        img = img[:,:,nucleus_channel].reshape(-1,1)
-        nuclei = nuclei.reshape(-1,1)
+    def analyze(self, img, background, channel_to_analyse):
+        # remove background first
+        img = img.astype(int) - background
+        img[img < 0] = 0
+        img = img.astype(np.uint16)
 
-        data = np.concatenate((nuclei, img), axis = 1)
-        data = pd.DataFrame(data, columns = ['cell_id', 'fluorescence'])
-        data['size'] = 1
+        nuclei = self.detector.predict_nuclei(img)
+        cells = self.detector.predict_cells(img)
+        img = img[:,:,channel_to_analyse-1].reshape(-1,1)
+        nuclei = (nuclei.reshape(-1,1) > 0).astype(int) # convert the mask ids to ones
+        cells = cells.reshape(-1,1)
+        cell_fluorescence = (cells>0) * img 
+        nucleus_fluorescence = nuclei * img
+
+        data = np.concatenate((cells, img, nuclei, nucleus_fluorescence), axis = 1)
+        data = pd.DataFrame(data, columns = ['cell_id', 'cell_fluorescence', 'nucleus_size', 'nucleus_fluorescence'])
+        data['cell_size'] = 1
         
-        data = data.groupby('cell_id').sum()
-        data['mean_fluorescence'] = data.fluorescence / data["size"]
+        data = data.groupby('cell_id').sum().reset_index()
+        data = data[data.cell_id > 0] # drop the background
 
         return data
