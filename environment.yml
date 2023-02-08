@@ -1,0 +1,19 @@
+name: cellanalysis
+channels:
+  - defaults
+dependencies:
+  - pandas=1.4.1
+  - seaborn=0.11.2
+  - matplotlib
+  - seaborn
+  - pip
+  - jupyter
+  - scikit-image
+  - pip:
+    - jupytext
+    - aicsimageio
+    - aicspylibczi
+    - opencv-python
+    - cellpose
+    - path
+    - patchify
