@@ -54,7 +54,7 @@ class Image:
     
     def display_image(self, gamma = 1): 
         channels = self.image.shape[2]
-        plt.figure(figsize=(5*channels,5))
+        fig = plt.figure(figsize=(5*channels,5))
         for channel in range(channels):
             plt.subplot(1,3, channel + 1)
             img = exposure.adjust_gamma(self.image[:,:,channel], gamma)
@@ -62,7 +62,7 @@ class Image:
             plt.title(f"channel {channel + 1}: {self.channel_names[channel + 1]}")
             plt.xticks([])
             plt.yticks([])
-        plt.show()
+        return fig
 
     def subtract_background(self):
         median = np.median(self.image, axis=[0,1])
